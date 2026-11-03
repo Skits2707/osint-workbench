@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}File Search — OSINT Workbench{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>File Search</h1>
+  <p class="muted">Portable deep search for this machine and its drives —
+  including network shares Windows Search refuses to index. Read-only:
+  nothing on the scanned drives is modified. The index lives on this USB stick.</p>
+
+  <h2>1 · Build / refresh the index</h2>
+  <form method="post" action="/files/index">
+    <p class="muted">Folders or drives to scan — one per line. Examples:
+    <code>C:\Users\me\Documents</code>, <code>D:\</code>, <code>\\server\share</code></p>
+    <textarea name="roots" rows="3" class="roots-box"
+      placeholder="D:\&#10;\\school-server\shared"></textarea>
+    <label class="muted">
+      <input type="checkbox" name="with_content" value="1" checked>
+      Also index file <em>contents</em> (.txt, .md, .csv, .docx, .pdf, code…)
+      — slower, but enables “files containing …” search
+    </label>
+    <div style="margin-top:10px">
+      <button type="submit" class="action-btn">Start indexing</button>
+      {% if indexed %}
+      <span class="muted">· currently {{ indexed }} files indexed</span>
+      {% endif %}
+    </div>
+  </form>
+  <div id="idx-status" class="muted"></div>
+</section>
+
+<section class="card">
+  <h2>2 · Search</h2>
+  <form method="get" action="/files" class="new-form">
+    <input name="q" type="text" value="{{ q }}" autofocus
+           placeholder="filename or words inside the file…">
+    <button type="submit">Search</button>
+  </form>
+
+  {% if results %}
+    {% set nh = results.name_hits %}
+    {% set ch = results.content_hits %}
+    <p class="muted">{{ nh|length }} filename match(es) ·
+       {{ ch|length }} content match(es)</p>
+
+    {% if nh %}
+    <h3>Filename matches</h3>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Location</th><th>Size</th><th>Modified</th></tr></thead>
+      <tbody>
+      {% for f in nh %}
+        <tr>
+          <td><strong>{{ f.name }}</strong></td>
+          <td class="muted small">{{ f.path }}</td>
+          <td class="small">{{ "%.1f KB"|format(f.size / 1024) }}</td>
+          <td class="small">{{ f.mtime | ts }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if ch %}
+    <h3>Content matches</h3>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Location</th><th>Match in context</th></tr></thead>
+      <tbody>
+      {% for f in ch %}
+        <tr>
+          <td><strong>{{ f.name }}</strong></td>
+          <td class="muted small">{{ f.path }}</td>
+          <td class="small">{{ f.excerpt | safe }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  {% endif %}
+</section>
+
+<script>
+async function poll() {
+  const r = await fetch('/api/files/status');
+  const s = await r.json();
+  const el = document.getElementById('idx-status');
+  if (s.running) {
+    el.textContent = `Indexing… ${s.done} files so far` +
+      (s.current ? ` — ${s.current}` : '');
+    setTimeout(poll, 1200);
+  } else if (s.done > 0 && !el.dataset.done) {
+    el.dataset.done = '1';
+    el.textContent = `Index complete: ${s.indexed_total} files` +
+      (s.errors ? ` (${s.errors} skipped/unreadable)` : '');
+  }
+}
+poll();
+</script>
+{% endblock %}

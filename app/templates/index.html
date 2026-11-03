@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card hero">
+  <h1>New investigation</h1>
+  <p class="muted">Enter a single identifier. The workbench queries public
+  sources, correlates what it finds, and produces a sourced verification report.</p>
+  <form method="post" action="/investigations" class="new-form">
+    <select name="input_type" required>
+      <option value="username">Username / handle</option>
+      <option value="email">Email address</option>
+      <option value="domain">Domain</option>
+      <option value="name">Full name</option>
+    </select>
+    <input name="input_value" type="text" required
+           placeholder="e.g. janesmith92 / user@mail.com / example.com" autocomplete="off">
+    <button type="submit">Run deep dive</button>
+  </form>
+  <p class="ethics">⚖ Use only on your own identifiers, with consent, or on
+  threat actors as part of legitimate security research.</p>
+</section>
+
+<section>
+  <h2>Past investigations</h2>
+  {% if investigations %}
+  <table class="table">
+    <thead><tr>
+      <th>When</th><th>Type</th><th>Identifier</th>
+      <th>Status</th><th>Findings</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for i in investigations %}
+      <tr>
+        <td>{{ i.created_at | ts }}</td>
+        <td>{{ i.input_type }}</td>
+        <td><a href="/investigations/{{ i.id }}">{{ i.input_value }}</a></td>
+        <td><span class="status status-{{ i.status }}">{{ i.status }}</span></td>
+        <td>{{ i.finding_count }}</td>
+        <td>
+          <form method="post" action="/investigations/{{ i.id }}/delete"
+                onsubmit="return confirm('Delete this investigation and all its findings?')">
+            <button class="link-btn" type="submit">delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No investigations yet. Try your own username to see the
+  report format — self-OSINT is the perfect demo.</p>
+  {% endif %}
+</section>
+{% endblock %}

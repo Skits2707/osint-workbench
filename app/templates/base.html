@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}OSINT Verification Workbench{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">⬡ OSINT Verification Workbench</a>
+  <nav class="nav">
+    <a href="/">Investigations</a>
+    <a href="/files">File Search</a>
+  </nav>
+  <span class="tagline">public sources only · full provenance · offline data</span>
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer">
+  All findings are retrieved from publicly accessible sources and tagged with
+  provenance. Database lives on this device only — nothing is sent anywhere
+  except requests to the public sources themselves.
+</footer>
+</body>
+</html>

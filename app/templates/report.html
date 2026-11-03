@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Report: {{ inv.input_value }}{% endblock %}
+{% block content %}
+{% if inv.status == "running" %}
+<section class="card">
+  <h1>Investigating “{{ inv.input_value }}”…</h1>
+  <p class="muted">Collectors are querying public sources. This page refreshes automatically.</p>
+  <div class="spinner"></div>
+</section>
+<script>setTimeout(() => location.reload(), 2500);</script>
+{% else %}
+
+<section class="card verdict">
+  <h1>Verification report — {{ inv.input_value }}</h1>
+  <p class="muted">{{ inv.input_type }} · {{ findings | length }} findings ·
+     {{ links | length }} corroborated links</p>
+  {% if inv.summary %}
+  <div class="verdict-box">
+    <strong>Assessment:</strong> {{ inv.summary }}
+  </div>
+  {% endif %}
+  <button class="link-btn" onclick="window.print()">🖨 print / save as PDF</button>
+</section>
+
+{% set contradictions = findings | selectattr("fact_type", "equalto", "contradiction") | list %}
+{% if contradictions %}
+<section class="card warning">
+  <h2>⚠ Contradictions flagged</h2>
+  {% for f in contradictions %}
+    <p><strong>{{ f.value }}</strong><br><span class="muted">{{ f.snippet }}</span></p>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if links %}
+<section class="card">
+  <h2>Corroborated links</h2>
+  <p class="muted">Relationships asserted by the correlation engine — the
+  evidence that separate accounts belong to the same identity.</p>
+  <ul class="link-list">
+  {% for l in links %}
+    <li>
+      <span class="conf conf-{{ confidence_label(l.confidence) | lower }}">{{ l.confidence }}%</span>
+      {{ by_id[l.from_id].value if l.from_id in by_id else '?' }}
+      ⟷ {{ by_id[l.to_id].value if l.to_id in by_id else '?' }}
+      <br><span class="muted">{{ l.reason }}</span>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>All findings (with provenance)</h2>
+  <table class="table findings">
+    <thead><tr>
+      <th>Confidence</th><th>Finding</th><th>Category</th>
+      <th>Source</th><th>Evidence</th>
+    </tr></thead>
+    <tbody>
+    {% for f in findings %}
+      <tr>
+        <td><span class="conf conf-{{ confidence_label(f.confidence) | lower }}">{{ f.confidence }}</span></td>
+        <td>
+          {% if f.url %}<a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.value }}</a>
+          {% else %}{{ f.value }}{% endif %}
+        </td>
+        <td>{{ f.category }} / {{ f.fact_type }}</td>
+        <td>{{ f.source }}</td>
+        <td class="muted small">{{ f.snippet }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endblock %}
