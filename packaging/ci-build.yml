@@ -1,0 +1,40 @@
+# CI workflow — builds Windows/macOS/Linux executables automatically.
+#
+# ONE MANUAL STEP REQUIRED:
+# GitHub blocks API tokens from creating workflow files, so this lives
+# here instead of .github/workflows/. To activate the auto-builds:
+#   1. Open this repo on github.com
+#   2. Click "Add file" → "Create new file"
+#   3. Name it exactly:  .github/workflows/build.yml
+#   4. Paste the contents of this file and commit
+# After that, every push builds all three executables; grab them from
+# the Actions tab → latest run → Artifacts (usb-windows is the .exe).
+
+name: build-usb
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - { os: windows-latest, exe: osint-workbench.exe, folder: windows }
+          - { os: macos-latest,   exe: osint-workbench,     folder: macos   }
+          - { os: ubuntu-latest,  exe: osint-workbench,     folder: linux   }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyinstaller
+      - run: pyinstaller --clean packaging/workbench.spec
+      - uses: actions/upload-artifact@v4
+        with:
+          name: usb-${{ matrix.folder }}
+          path: dist/${{ matrix.exe }}
